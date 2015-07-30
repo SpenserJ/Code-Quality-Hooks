@@ -5,7 +5,8 @@ var path = require('path')
   , Q = require('q');
 
 var config = require('./lib/config')
-  , execute = require('./lib/execute');
+  , execute = require('./lib/execute')
+  , Language = require('./lib/language');
 
 function getChangedFiles(previousCommit, callback) {
   if (typeof callback === 'undefined') {
@@ -28,19 +29,18 @@ getChangedFiles(true, function (err, data) {
   // Run through all of the tests at once, one file at a time.
   var processingFiles = data.map(function (file) {
     var ext = path.extname(file).substr(1)
-      , language = config.extensions[ext];
+      , language = config.extensions[ext]
+      , languageController = new Language(language);
 
-    if (typeof language === 'undefined') {
+    if (languageController.loaded === false) {
       //console.log('Unknown language for extension:', ext);
     } else {
       var deferred = Q.defer();
-      var parsers = config.languages[language];
-      var languageController = require('./languages/' + language);
-      var output = languageController.run(parsers, file);
+      var output = languageController.run(file);
       output.then(function (results) {
         var failedTests = 0;
-        var message = 'Testing file ' + file.underline + ' as ' + language.bold;
-        console.log(message);
+        var message = '[' + language + '] ' + file.underline;
+        console.log(message.blue);
         results.forEach(function (result) {
           if (result.state === 'fulfilled') {
             var message = '[✓] ' + result.parser;
