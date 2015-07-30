@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 var path = require('path')
-  , colors = require('colors');
+  , colors = require('colors')
+  , Q = require('q');
 
 var config = require('./lib/config')
   , execute = require('./lib/execute');
@@ -25,18 +26,19 @@ getChangedFiles(true, function (err, data) {
   }
 
   // Run through all of the tests at once, one file at a time.
-  for (var i = 0; i < data.length; i++) {
-    var file = data[i]
-      , ext = path.extname(file).substr(1)
+  var processingFiles = data.map(function (file) {
+    var ext = path.extname(file).substr(1)
       , language = config.extensions[ext];
 
     if (typeof language === 'undefined') {
       //console.log('Unknown language for extension:', ext);
     } else {
+      var deferred = Q.defer();
       var parsers = config.languages[language];
       var languageController = require('./languages/' + language);
       var output = languageController.run(parsers, file);
       output.then(function (results) {
+        var failedTests = 0;
         var message = 'Testing file ' + file.underline + ' as ' + language.bold;
         console.log(message);
         results.forEach(function (result) {
@@ -47,9 +49,32 @@ getChangedFiles(true, function (err, data) {
             var message = '[✖] ' + result.parser + ' failed:';
             console.log(message.red);
             console.log(result.reason);
+            failedTests++;
           }
         });
+        console.log();
+
+        if (failedTests === 0) { deferred.resolve(); }
+        else { deferred.reject(file + ' failed ' + failedTests + ' tests.'); }
       });
+
+      return deferred.promise;
     }
-  }
+  });
+
+  Q.allSettled(processingFiles).then(function (results) {
+    var passed = true;
+    results.forEach(function (result) {
+      if (result.state !== 'fulfilled') {
+        passed = false;
+        var message = '[✖] ' + result.reason;
+        console.log(message.red.bold.underline);
+      }
+    });
+
+    if (passed === true) {
+      var message = '[✓] All files have passed all tests.';
+      console.log(message.green.bold.underline)
+    }
+  });
 });
