@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+var path = require('path')
+  , colors = require('colors');
+
+var config = require('./lib/config')
+  , execute = require('./lib/execute');
+
+function getChangedFiles(previousCommit, callback) {
+  if (typeof callback === 'undefined') {
+    callback = previousCommit;
+    previousCommit = false;
+  }
+
+  var gitCommandFocus = (previousCommit ? 'HEAD^..HEAD' : '--cached');
+  execute('git', ['diff', gitCommandFocus, '--name-only', '--diff-filter=ACM'], function (err, data, code) {
+    callback(err, data.trim().split("\n"));
+  });
+}
+
+getChangedFiles(true, function (err, data) {
+  if (err) {
+    console.error('Error getting changed files:', err);
+    return;
+  }
+
+  // Run through all of the tests at once, one file at a time.
+  for (var i = 0; i < data.length; i++) {
+    var file = data[i]
+      , ext = path.extname(file).substr(1)
+      , language = config.extensions[ext];
+
+    if (typeof language === 'undefined') {
+      console.log('Unknown language for extension:', ext);
+    } else {
+      var parsers = config.languages[language];
+      var languageController = require('./languages/' + language);
+      var output = languageController.run(parsers, file);
+      output.then(function (results) {
+        var message = 'Testing file ' + file.underline + ' as ' + language.bold;
+        console.log(message);
+        results.forEach(function (result) {
+          if (result.state === 'fulfilled') {
+            var message = '[✓] ' + result.parser;
+            console.log(message.green);
+          } else {
+            var message = '[✖] ' + result.parser + ' failed:';
+            console.log(message.red);
+            console.log(result.reason);
+          }
+        });
+      });
+    }
+  }
+});
