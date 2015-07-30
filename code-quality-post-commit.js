@@ -31,7 +31,7 @@ getChangedFiles(true, function (err, data) {
       , language = config.extensions[ext];
 
     if (typeof language === 'undefined') {
-      console.log('Unknown language for extension:', ext);
+      //console.log('Unknown language for extension:', ext);
     } else {
       var parsers = config.languages[language];
       var languageController = require('./languages/' + language);
