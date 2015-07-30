@@ -1,8 +1,9 @@
+/* eslint-env node */
 module.exports = {
   'php': {
-    'command': 'php -l',
+    'command': 'php -l'
   },
   'phpcs': {
-    'command': 'phpcs --standard=Drupal',
-  },
+    'command': 'phpcs --standard=Drupal'
+  }
 };

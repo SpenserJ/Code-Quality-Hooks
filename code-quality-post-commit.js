@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 
-var path = require('path')
-  , colors = require('colors')
-  , Q = require('q');
+/* eslint-env node */
+var path = require('path');
+var Q = require('q');
 
-var config = require('./lib/config')
-  , execute = require('./lib/execute')
-  , Language = require('./lib/language');
+var config = require('./lib/config');
+var execute = require('./lib/execute');
+var Language = require('./lib/language');
+
+require('colors');
 
 function getChangedFiles(previousCommit, callback) {
+  "use strict";
   if (typeof callback === 'undefined') {
     callback = previousCommit;
     previousCommit = false;
@@ -21,6 +24,7 @@ function getChangedFiles(previousCommit, callback) {
 }
 
 getChangedFiles(true, function (err, data) {
+  "use strict";
   if (err) {
     console.error('Error getting changed files:', err);
     return;
@@ -28,13 +32,11 @@ getChangedFiles(true, function (err, data) {
 
   // Run through all of the tests at once, one file at a time.
   var processingFiles = data.map(function (file) {
-    var ext = path.extname(file).substr(1)
-      , language = config.extensions[ext]
-      , languageController = new Language(language);
+    var ext = path.extname(file).substr(1);
+    var language = config.extensions[ext];
+    var languageController = new Language(language);
 
-    if (languageController.loaded === false) {
-      //console.log('Unknown language for extension:', ext);
-    } else {
+    if (languageController.loaded === true) {
       var deferred = Q.defer();
       var output = languageController.run(file);
       output.then(function (results) {
@@ -42,11 +44,13 @@ getChangedFiles(true, function (err, data) {
         var message = '[' + language + '] ' + file.underline;
         console.log(message.blue);
         results.forEach(function (result) {
+          var message;
           if (result.state === 'fulfilled') {
-            var message = '[✓] ' + result.parser;
+            message = '[✓] ' + result.parser;
             console.log(message.green);
-          } else {
-            var message = '[✖] ' + result.parser + ' failed:';
+          }
+          else {
+            message = '[✖] ' + result.parser + ' failed:';
             console.log(message.red);
             console.log(result.reason);
             failedTests++;
@@ -74,7 +78,7 @@ getChangedFiles(true, function (err, data) {
 
     if (passed === true) {
       var message = '[✓] All files have passed all tests.';
-      console.log(message.green.bold.underline)
+      console.log(message.green.bold.underline);
     }
   });
 });
