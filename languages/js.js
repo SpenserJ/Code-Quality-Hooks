@@ -6,7 +6,7 @@ module.exports = {
     'command': 'esvalidate'
   },
   'eslint': {
-    'command': 'eslint -f ./node_modules/eslint-json/json -c ' + path.join(__dirname, '../linter_configs/.eslintrc'),
+    'command': 'eslint -f ' + path.join(__dirname, '../node_modules/eslint-json/json') + ' -c ' + path.join(__dirname, '../linter_configs/.eslintrc'),
     'process': function (data) {
       'use strict';
       var output = {
