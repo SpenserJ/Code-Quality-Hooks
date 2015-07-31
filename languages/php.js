@@ -21,7 +21,7 @@ module.exports = {
         return {
           message: message.message,
           source: message.source,
-          type: message.type, // This should be normalized across all languages.
+          type: message.type.toLowerCase(),
           line: message.line,
           column: message.column
         };

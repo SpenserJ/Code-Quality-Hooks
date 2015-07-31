@@ -87,9 +87,9 @@ function handleTestResults(language, file, deferred, results) {
       else {
         result.reason.messages.forEach(function (message) {
           var location = pad('[' + message.line + ':' + message.column + ']', 11);
-          var text = (message.type === 'ERROR') ? message.message.red : message.message.yellow;
-          var source = ' (' + message.source + ')';
-          console.log(location.blue + text + source.blue);
+          var text = (message.type === 'error') ? message.message.red : message.message.yellow;
+          var source = (message.source ? (' (' + message.source + ')').blue : '');
+          console.log(location.blue + text + source);
         });
         totalWarnings += result.reason.warnings;
         totalErrors += result.reason.errors;

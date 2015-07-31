@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "colors": "^1.1.2",
+    "eslint-json": "^1.0.0",
     "pad": "^0.1.0",
     "q": "^1.4.1"
   }
