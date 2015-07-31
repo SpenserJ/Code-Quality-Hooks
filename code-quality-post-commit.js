@@ -3,6 +3,7 @@
 /* eslint-env node */
 var path = require('path');
 var Q = require('q');
+var pad = require('pad');
 
 var config = require('./lib/config');
 var execute = require('./lib/execute');
@@ -40,26 +41,7 @@ getChangedFiles(true, function (err, data) {
       var deferred = Q.defer();
       var output = languageController.run(file);
       output.then(function (results) {
-        var failedTests = 0;
-        var message = '[' + language + '] ' + file.underline;
-        console.log(message.blue);
-        results.forEach(function (result) {
-          var message;
-          if (result.state === 'fulfilled') {
-            message = '[✓] ' + result.parser;
-            console.log(message.green);
-          }
-          else {
-            message = '[✖] ' + result.parser + ' failed:';
-            console.log(message.red);
-            console.log(result.reason);
-            failedTests++;
-          }
-        });
-        console.log();
-
-        if (failedTests === 0) { deferred.resolve(); }
-        else { deferred.reject(file + ' failed ' + failedTests + ' tests.'); }
+        handleTestResults(language, file, deferred, results);
       });
 
       return deferred.promise;
@@ -71,8 +53,8 @@ getChangedFiles(true, function (err, data) {
     results.forEach(function (result) {
       if (result.state !== 'fulfilled') {
         passed = false;
-        var message = '[✖] ' + result.reason;
-        console.log(message.red.bold.underline);
+        var message = '[✖] '.red + result.reason;
+        console.log(message);
       }
     });
 
@@ -82,3 +64,46 @@ getChangedFiles(true, function (err, data) {
     }
   });
 });
+
+function handleTestResults(language, file, deferred, results) {
+  "use strict";
+  var failedTests = 0;
+  var totalWarnings = 0;
+  var totalErrors = 0;
+  var message = '[' + language + '] ' + file.underline;
+  console.log(message.blue);
+  results.forEach(function (result) {
+    var message;
+    if (result.state === 'fulfilled') {
+      message = '[✓] ' + result.parser;
+      console.log(message.green);
+    }
+    else {
+      message = '[✖] ' + result.parser + ' failed:';
+      console.log(message.red);
+      if (typeof result.reason === 'string') {
+        console.log(result.reason);
+      }
+      else {
+        result.reason.messages.forEach(function (message) {
+          var location = pad('[' + message.line + ':' + message.column + ']', 11);
+          var text = (message.type === 'ERROR') ? message.message.red : message.message.yellow;
+          var source = ' (' + message.source + ')';
+          console.log(location.blue + text + source.blue);
+        });
+        totalWarnings += result.reason.warnings;
+        totalErrors += result.reason.errors;
+      }
+      failedTests++;
+    }
+  });
+  console.log();
+
+  if (failedTests === 0) { deferred.resolve(); }
+  else {
+    message = file.red.underline + ' failed ' + failedTests + ' tests';
+    if (totalErrors > 0) { message += (' [' + totalErrors + ' errors]').red; }
+    if (totalWarnings > 0) { message += (' [' + totalWarnings + ' warnings]').yellow; }
+    deferred.reject(message);
+  }
+}
